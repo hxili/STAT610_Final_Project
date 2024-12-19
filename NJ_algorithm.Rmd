@@ -1,4 +1,27 @@
 ```{r}
+# Load the ape package
+library(ape)
+
+# Define the tree as a list and assign the class "phylo"
+egtree <- list(
+  edge = matrix(c(5, 1,
+                  5, 2,
+                  5, 6,
+                  6, 3,
+                  6, 4), ncol = 2, byrow = TRUE),
+  tip.label = c("A", "B", "C", "D"),
+  Nnode = 2,
+  edge.length = c(0.1, 0.2, 0.3, 0.4, 0.5)
+)
+class(egtree) <- "phylo"
+
+# Plot the tree
+plot(egtree, main = "Reconstructed Tree")
+
+plot.phylo(egtree, type = "unrooted", edge.color = "blue", edge.width = 2, tip.color = "red", main = "Customized Phylogenetic Tree")
+```
+
+```{r}
 D = matrix(c(0,5,9,9,8,5,0,10,10,9,9,10,0,8,7,9,10,8,0,3,8,9,7,3,0), ncol=5)
 # Calculate Q matrix
 cal_Q <- function(D_matrix) {}
@@ -57,10 +80,11 @@ NJ <- function(D_matrix, total_dim, edge_vector) {
   #} 
   delta1 = 0.5 * D_matrix[cord1,cord2] + 0.5/(n-2)*(d1[cord1,cord2]-d2[cord1,cord2])
   delta2 = D_matrix[cord1,cord2] - delta1
-  delta3 = D_matrix[1,3] - delta1 # it's for the last iteration which will omit 3 delta values. The last Q matrix must be a matrix with all equal values not in diagonal
   
   if (n==3) {
-    return(list(c(edge1, edge2), c(delta1, delta2, delta3)))
+    delta3 = D_matrix[1,3] - delta1 # it's for the last iteration which will omit 3 delta values. The last Q matrix must be a matrix with all equal values not in diagonal
+    edge3 = edge_vector[3]
+    return(list(c(edge1, edge2, edge3), c(delta1, delta2, delta3)))
   } # the last iteration would not need to update the D matrix and just return edge values and delta
   
   trans_m = st_m
@@ -81,6 +105,7 @@ NJ <- function(D_matrix, total_dim, edge_vector) {
 }
 
 edge <- c(1:5)
+D = matrix(c(0,5,9,9,8,5,0,10,10,9,9,10,0,8,7,9,10,8,0,3,8,9,7,3,0), ncol=5)
 t <- NJ(D, dim(D)[1], edge)
 ```
 
@@ -88,24 +113,43 @@ t <- NJ(D, dim(D)[1], edge)
 ```{r}
 NJ_iter <- function(D_init) {
   dim = dim(D_init)[1]
+  edge_v = c(1:dim) # vector can be operated and record the edge values' changes
   edge <- matrix(0, ncol=2, nrow=2*dim-3)
+  tip.label <- paste("t", 1:dim, sep='')
+  Nnode = dim - 2
   edge.length <- c(rep(0, each=2*dim-3))
-  edge_v = c(1:dim)
   for(i in dim:4) {
     out <- NJ(D_init, dim, edge_v)
     D_init <- out[[1]]
     print(D_init)
     edge[c(2*dim-2*i+1,2*dim-2*i+2),] <- c(2*dim+1-i, 2*dim+1-i, out[[2]][1], out[[2]][2])
-    #print(edge)
-    #print(out[[2]])
-    edge.length <- out[[3]]
-    print(out[[3]])
+    print(edge)
+    edge.length[c(2*dim-2*i+1,2*dim-2*i+2)] <- out[[3]]
+    print(edge.length)
     edge_v <- out[[4]]
   }
-  return(D_init)
+  print(edge_v)
+  out <- NJ(D_init, dim, edge_v)
+  edge[c(2*dim-5, 2*dim-4, 2*dim-3),] <- c(2*dim-2, 2*dim-2, 2*dim-2, out[[1]][1], out[[1]][2], out[[1]][3])
+  print(edge)
+  edge.length[c(2*dim-5, 2*dim-4, 2*dim-3)] <- out[[2]]
+  print(edge.length)
+  
+  return(list("edge"=edge, "tip.label"=tip.label, "Nnode"=Nnode, "edge.length"=edge.length))
 }
 
-D_2 <- NJ_iter(D)
+D = matrix(c(0,5,9,9,8,5,0,10,10,9,9,10,0,8,7,9,10,8,0,3,8,9,7,3,0), ncol=5)
+tree <- NJ_iter(D)
+
+class(tree) <- "phylo"
+```
+
+
+```{r}
+# Plot the tree
+plot(tree, main = "Reconstructed Tree")
+
+plot.phylo(tree, type = "unrooted", edge.color = "blue", edge.width = 2, tip.color = "red", main = "Customized Phylogenetic Tree")
 ```
 
 
