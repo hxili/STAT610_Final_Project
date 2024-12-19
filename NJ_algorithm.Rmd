@@ -1,65 +1,10 @@
 ```{r}
-# Load the ape package
 library(ape)
 
-# Define the tree as a list and assign the class "phylo"
-egtree <- list(
-  edge = matrix(c(5, 1,
-                  5, 2,
-                  5, 6,
-                  6, 3,
-                  6, 4), ncol = 2, byrow = TRUE),
-  tip.label = c("A", "B", "C", "D"),
-  Nnode = 2,
-  edge.length = c(0.1, 0.2, 0.3, 0.4, 0.5)
-)
-class(egtree) <- "phylo"
-
-# Plot the tree
-plot(egtree, main = "Reconstructed Tree")
-
-plot.phylo(egtree, type = "unrooted", edge.color = "blue", edge.width = 2, tip.color = "red", main = "Customized Phylogenetic Tree")
-```
-
-```{r}
-D = matrix(c(0,5,9,9,8,5,0,10,10,9,9,10,0,8,7,9,10,8,0,3,8,9,7,3,0), ncol=5)
-# Calculate Q matrix
-cal_Q <- function(D_matrix) {}
-n = dim(D)[1]
-st_m = matrix(0, ncol=n, nrow=n) # Standard matrix
-diag(st_m) <- 1
-Q = matrix(0, ncol=n, nrow=n)
-trans_m = matrix(1, ncol=n, nrow=n)
-d1 = D %*% trans_m
-d2 = t(d1)
-Q = (n-2) * D - d1 - d2
-diag(Q) <- 0
-min(Q)
-cord = which(Q==-50,arr.ind=TRUE)[1,]
-cord1 = cord[2]
-cord2 = cord[1]
-delta1 = 0.5 * D[cord1,cord2] + 0.5/(n-2)*(d1[cord1,cord2]-d2[cord1,cord2])
-delta2 = D[cord1,cord2] - delta1
-
-trans_m = st_m
-trans_m[cord1,cord2] = 1
-new_row = trans_m %*% D
-
-trans_m = st_m
-trans_m[cord1,] = -1
-new_row = 0.5 * (new_row %*% trans_m)[cord1,c(-cord1, -cord2)]
-D <- D[c(-cord1,-cord2),]
-D <- D[,c(-cord1,-cord2)]
-D <- rbind(new_row, D)
-D <- cbind(c(0,new_row), D)
-```
-
-
-```{r}
 NJ <- function(D_matrix, total_dim, edge_vector) {
   n = dim(D_matrix)[1]
-  st_m = matrix(0, ncol=n, nrow=n) # Standard matrix
-  diag(st_m) <- 1
+  id_m = matrix(0, ncol=n, nrow=n) # identity matrix
+  diag(id_m) <- 1
   Q = matrix(0, ncol=n, nrow=n)
   trans_m = matrix(1, ncol=n, nrow=n)
   d1 = D_matrix %*% trans_m
@@ -73,11 +18,6 @@ NJ <- function(D_matrix, total_dim, edge_vector) {
   
   edge1 = edge_vector[cord1]
   edge2 = edge_vector[cord2] # retrieve the edge values for joining taxa
-  #if(n != total_dim) {
-   # if(cord1 == 1) {
-    #  edge1 = 2*total_dim-n # edge value for new node created in last iteration
-    #}
-  #} 
   delta1 = 0.5 * D_matrix[cord1,cord2] + 0.5/(n-2)*(d1[cord1,cord2]-d2[cord1,cord2])
   delta2 = D_matrix[cord1,cord2] - delta1
   
@@ -87,20 +27,20 @@ NJ <- function(D_matrix, total_dim, edge_vector) {
     return(list(c(edge1, edge2, edge3), c(delta1, delta2, delta3)))
   } # the last iteration would not need to update the D matrix and just return edge values and delta
   
-  trans_m = st_m
+  trans_m = id_m
   trans_m[cord1,cord2] = 1
   new_row = trans_m %*% D_matrix
   
-  trans_m = st_m
+  trans_m = id_m
   trans_m[cord1,] = -1
   new_row = 0.5 * (new_row %*% trans_m)[cord1,c(-cord1, -cord2)]
 
   D_matrix <- D_matrix[c(-cord1,-cord2),]
   D_matrix <- D_matrix[,c(-cord1,-cord2)] # delete 2 rows and 2 cols that belong to the 2 joined taxa
-  edge_vector <- edge_vector[c(-cord1,-cord2)] # do the same on edge matrix
+  edge_vector <- edge_vector[c(-cord1,-cord2)] # do the same with the edge vector
   edge_vector <- append(total_dim+n-2, edge_vector) # create a new edge value for new node
   D_matrix <- rbind(new_row, D_matrix)
-  D_matrix <- cbind(c(0,new_row), D_matrix) # Always the new node is in the first col and row
+  D_matrix <- cbind(c(0,new_row), D_matrix) # always the new node is in the first col and row
   return(list(D_matrix, c(edge1, edge2), c(delta1, delta2), edge_vector))
 }
 
@@ -145,7 +85,6 @@ tree <- NJ_iter(D)
 
 ```{r}
 tree$edge <- cbind(matrix(rev(tree$edge), ncol=2)[,2], matrix(rev(tree$edge), ncol=2)[,1])
-tree$tip.label <- rev(tree$tip.label)
 tree$edge.length <- rev(tree$edge.length)
 ```
 
@@ -154,10 +93,14 @@ tree$edge.length <- rev(tree$edge.length)
 ```{r}
 class(tree) <- "phylo"
 # Plot the tree
-plot(tree, main = "Reconstructed Tree")
+plot(tree, main = "Phylogenetic Tree by NJ_iter")
 
-plot.phylo(tree, type = "unrooted", edge.color = "blue", edge.width = 2, tip.color = "red", main = "Customized Phylogenetic Tree")
+plot.phylo(tree, type = "unrooted", main = "Phylogenetic Tree by NJ_iter")
 ```
 
+```{r}
+validate_tree <- nj(D)
+plot(validate_tree, main = "Phylogenetic Tree by ape:nj")
 
-
+plot.phylo(validate_tree, type = "unrooted", main = "Phylogenetic Tree by ape:nj")
+```
