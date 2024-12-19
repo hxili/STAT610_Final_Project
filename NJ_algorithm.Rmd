@@ -55,43 +55,38 @@ NJ_iter <- function(D_init) {
   dim = dim(D_init)[1]
   edge_v = c(1:dim) # vector can be operated and record the edge values' changes
   edge <- matrix(0, ncol=2, nrow=2*dim-3)
-  tip.label <- paste("t", 1:dim, sep='')
+  tip.label <- as.character(c(1:dim))
   Nnode = dim - 2
   edge.length <- c(rep(0, each=2*dim-3))
-  for(i in dim:4) {
-    out <- NJ(D_init, dim, edge_v)
-    D_init <- out[[1]]
-    print(D_init)
-    edge[c(2*dim-2*i+1,2*dim-2*i+2),] <- c(dim+i-2, dim+i-2, out[[2]][1], out[[2]][2]) # the first 2 elements are edge values for new node created in last iteration
-    print(edge)
-    edge.length[c(2*dim-2*i+1,2*dim-2*i+2)] <- out[[3]]
-    print(edge.length)
-    edge_v <- out[[4]]
+  if (dim > 3) {
+    for(i in dim:4) {
+      out <- NJ(D_init, dim, edge_v)
+      D_init <- out[[1]]
+      edge[c(2*dim-2*i+1,2*dim-2*i+2),] <- c(dim+i-2, dim+i-2, out[[2]][1], out[[2]][2]) # the first 2 elements are edge values for new node created in last iteration
+      edge.length[c(2*dim-2*i+1,2*dim-2*i+2)] <- out[[3]]
+      edge_v <- out[[4]]
+    }
   }
-  print(edge_v)
   out <- NJ(D_init, dim, edge_v)
   edge[c(2*dim-5, 2*dim-4, 2*dim-3),] <- c(dim+1, dim+1, dim+1, out[[1]][1], out[[1]][2], out[[1]][3])
-  print(edge)
   edge.length[c(2*dim-5, 2*dim-4, 2*dim-3)] <- out[[2]]
-  print(edge.length)
   
-  return(list("edge"=edge, "tip.label"=tip.label, "Nnode"=Nnode, "edge.length"=edge.length))
+  tree = list("edge"=edge, "tip.label"=tip.label, "Nnode"=Nnode, "edge.length"=edge.length)
+  tree$edge <- cbind(matrix(rev(tree$edge), ncol=2)[,2], matrix(rev(tree$edge), ncol=2)[,1])
+  tree$edge.length <- rev(tree$edge.length)
+  class(tree) <- "phylo"
+  return(tree)
 }
 
 D = matrix(c(0,5,9,9,8,5,0,10,10,9,9,10,0,8,7,9,10,8,0,3,8,9,7,3,0), ncol=5)
+
 tree <- NJ_iter(D)
 ```
 
 
-```{r}
-tree$edge <- cbind(matrix(rev(tree$edge), ncol=2)[,2], matrix(rev(tree$edge), ncol=2)[,1])
-tree$edge.length <- rev(tree$edge.length)
-```
-
 
 
 ```{r}
-class(tree) <- "phylo"
 # Plot the tree
 plot(tree, main = "Phylogenetic Tree by NJ_iter")
 
